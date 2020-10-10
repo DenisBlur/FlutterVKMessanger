@@ -1,26 +1,22 @@
 import 'dart:convert';
 
+import 'package:flare_flutter/flare_actor.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_vk_app/Models/ConverstationModel.dart';
 import 'package:flutter_vk_app/Models/LongPoll/LongPollWrapper.dart';
-import 'package:flutter_vk_app/Models/Message/MessageJson.dart';
 import 'package:flutter_vk_app/Widgets/ConversationContent.dart';
-import 'package:flutter_vk_app/Widgets/ConversationItem.dart';
-import 'package:flutter_vk_app/supports/LongPollMethods/longPollWrapper.dart';
 import 'package:flutter_vk_app/supports/colors.dart';
 import 'package:flutter_vk_app/supports/global_method.dart';
 import 'package:flutter_vk_app/supports/variables.dart';
 import 'package:http/http.dart' as http;
-
-import 'DialogPage.dart';
 
 class ConversationsPage extends StatefulWidget {
   @override
   _ConversationsPageState createState() => _ConversationsPageState();
 }
 
-Converstation converstations;
+Converstation conversations;
 LongPollWrapper _longPollWrapper;
 
 class _ConversationsPageState extends State<ConversationsPage> {
@@ -36,7 +32,7 @@ class _ConversationsPageState extends State<ConversationsPage> {
     }
   }
 
-  Stream<List<Object>> GetLongPoll() async* {
+  Stream<LongPollAnswer> GetLongPoll() async* {
     while (true) {
       if (_longPollWrapper == null) {
         await GetMainDataLongPoll();
@@ -65,9 +61,7 @@ class _ConversationsPageState extends State<ConversationsPage> {
         var response = await http.get(url);
         Map<String, dynamic> map = jsonDecode(response.body.toString());
         LongPollAnswer answer = LongPollAnswer.fromJson(map);
-        for (var object in answer.updates) {
-          yield object;
-        }
+        yield answer;
       }
     }
   }
@@ -80,113 +74,183 @@ class _ConversationsPageState extends State<ConversationsPage> {
     var response = await http.get(url);
     if (response.statusCode == 200) {
       Map<String, dynamic> map = jsonDecode(response.body.toString());
-      converstations = Converstation.fromJson(map);
+      conversations = Converstation.fromJson(map);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(children: [
-          Container(
-            height: 56,
-            child: Row(
-              children: [
-                Expanded(
-                    child: Padding(
-                  padding: EdgeInsets.only(left: 16),
-                  child: Text(
-                    "CONVERSATIONS",
-                    style: TextStyle(
-                      fontWeight: FontWeight.w300,
-                      letterSpacing: 1,
-                      fontSize: 16,
-                    ),
-                  ),
-                )),
-                Container(
-                    height: 32,
-                    width: 32,
-                    margin: EdgeInsets.only(right: 16),
-                    decoration: BoxDecoration(
-                        border: Border.all(color: designLightGray),
-                        borderRadius: BorderRadius.circular(20)),
-                    child: IconButton(
-                      padding: EdgeInsets.all(0),
-                      icon: Icon(
-                        Icons.add,
-                        color: designBlack,
-                      ),
-                      onPressed: () {
-                        print("Hello");
-                      },
-                    ))
+    return SafeArea(
+        child: Scaffold(
+            appBar: AppBarWidget(
+              height: 56,
+            ),
+            bottomNavigationBar: BottomNavigationBar(
+              items: [
+                BottomNavigationBarItem(
+                    icon: Icon(Icons.home_rounded), label: "Home"),
+                BottomNavigationBarItem(
+                    icon: Icon(Icons.chat_bubble_rounded), label: "Messanger"),
+                BottomNavigationBarItem(
+                    icon: Icon(Icons.account_circle), label: "Profile")
               ],
             ),
-          ),
+            backgroundColor: Colors.white,
+            body: FutureBuilder(
+              // ignore: missing_return
+              builder: (context, snapshot) {
+                switch (snapshot.connectionState) {
+                  case ConnectionState.waiting:
+                  case ConnectionState.none:
+                  case ConnectionState.active:
+                    return Center(child: CircularProgressIndicator());
+                  case ConnectionState.done:
+                    return StreamBuilder(
+                      initialData: false,
+                      stream: GetLongPoll(),
+                      key: UniqueKey(),
+                      builder:
+                          // ignore: missing_return
+                          (BuildContext context,
+                              AsyncSnapshot<dynamic> snapshot) {
+                        switch (snapshot.connectionState) {
+                          case ConnectionState.none:
+                            break;
+                          case ConnectionState.waiting:
+                          case ConnectionState.active:
+                            var answer = snapshot.data;
+                            if (answer != false) {
+                              for (var update in answer.updates) {
+                                switch (update[0]) {
+                                  case 4:
+                                    print(update.toString());
+                                    for (var i = 0;
+                                        i < conversations.response.items.length;
+                                        i++) {
+                                      var item =
+                                          conversations.response.items[i];
+                                      item.isWrite = false;
+                                      item.last_message.attachments.clear();
+                                      if (item.conversation.peer.id
+                                              .toString() ==
+                                          update[3].toString()) {
+                                        if (update[2] == 51) {
+                                          item.isMe = true;
+                                        } else {
+                                          item.isMe = false;
+                                        }
+                                        item.last_message.text =
+                                            update[5].toString();
+                                        if (update[7].toString() != "{}") {
+                                          item.last_message.attachments.add(
+                                              new conAttachment(
+                                                  update[7]["attach1_type"]));
+                                        }
+                                        conversations.response.items[i] = item;
+                                        conversations.response.items
+                                            .removeAt(i);
+                                        conversations.response.items
+                                            .insert(0, item);
+                                        break;
+                                      }
+                                    }
+                                    break;
+                                  case 8:
+                                  case 9:
+                                    int online_date = update[0] == 8 ? 1 : 0;
+                                    int id_date = update[1] * -1;
+                                    for (var i = 0;
+                                        i < conversations.response.items.length;
+                                        i++) {
+                                      var item =
+                                          conversations.response.profiles[i];
+                                      if (item.id == id_date) {
+                                        item.online = online_date;
+                                        conversations.response.profiles[i] =
+                                            item;
+                                      }
+                                    }
+                                    break;
+                                  case 61:
+                                    for (var i = 0;
+                                        i < conversations.response.items.length;
+                                        i++) {
+                                      var item =
+                                          conversations.response.items[i];
+                                      item.last_message.attachments.clear();
+                                      if (item.conversation.peer.id
+                                              .toString() ==
+                                          update[1].toString()) {
+                                        item.isWrite = true;
+                                        conversations.response.items[i] = item;
+                                        break;
+                                      }
+                                    }
+                                    break;
+                                }
+                              }
+                            }
+                            return ConversationContent();
+                            break;
+                          case ConnectionState.done:
+                            return Expanded(child: Text("STREAM BUILDER"));
+                            break;
+                        }
+                      },
+                    );
+                }
+              },
+              future: GetConverstations(),
+            )));
+  }
+}
+
+class AppBarWidget extends StatelessWidget implements PreferredSizeWidget {
+  final double height;
+
+  const AppBarWidget({Key key, this.height}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 56,
+      child: Row(
+        children: [
           Expanded(
-              child: FutureBuilder(
-            // ignore: missing_return
-            builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
-              switch (snapshot.connectionState) {
-                case ConnectionState.none:
-                  return Center(child: CircularProgressIndicator());
-                  break;
-                case ConnectionState.waiting:
-                  return Center(child: CircularProgressIndicator());
-                  break;
-                case ConnectionState.active:
-                  return Center(child: CircularProgressIndicator());
-                  break;
-                case ConnectionState.done:
-                  return StreamBuilder(
-                    initialData: false,
-                    stream: GetLongPoll(),
-                    key: UniqueKey(),
-                    // ignore: missing_return
-                    builder:
-                        // ignore: missing_return
-                        (BuildContext context,
-                            AsyncSnapshot<dynamic> snapshot) {
-                      switch (snapshot.connectionState) {
-                        case ConnectionState.none:
-                          break;
-                        case ConnectionState.waiting:
-                          print(snapshot.data);
-                          longPollWrap(snapshot.data, converstations);
-                          return ConversationContent(
-                              converstations: converstations);
-                          break;
-                        case ConnectionState.active:
-                          print(snapshot.data);
-                          longPollWrap(snapshot.data, converstations);
-                          return ConversationContent(
-                              converstations: converstations);
-                          break;
-                        case ConnectionState.done:
-                          return Text("done");
-                          break;
-                      }
-                    },
-                  );
-                  break;
-              }
-            },
-            future: GetConverstations(),
+              child: Padding(
+            padding: EdgeInsets.only(left: 16),
+            child: Text(
+              "CONVERSATIONS",
+              style: TextStyle(
+                fontWeight: FontWeight.w300,
+                letterSpacing: 1,
+                fontSize: 16,
+              ),
+            ),
           )),
           Container(
-            height: 56,
-            decoration: BoxDecoration(color: Colors.white, boxShadow: [
-              BoxShadow(
-                  offset: Offset(0, -1),
-                  blurRadius: 5,
-                  color: Colors.black.withOpacity(0.1))
-            ]),
-          ),
-        ]),
+              height: 32,
+              width: 32,
+              margin: EdgeInsets.only(right: 16),
+              decoration: BoxDecoration(
+                  border: Border.all(color: designLightGray),
+                  borderRadius: BorderRadius.circular(20)),
+              child: IconButton(
+                padding: EdgeInsets.all(0),
+                icon: Icon(
+                  Icons.add,
+                  color: designBlack,
+                ),
+                onPressed: () {
+                  print("Hello");
+                },
+              ))
+        ],
       ),
     );
   }
+
+  @override
+  // TODO: implement preferredSize
+  Size get preferredSize => Size.fromHeight(height);
 }

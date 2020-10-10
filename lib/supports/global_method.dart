@@ -14,20 +14,24 @@ String nameAttachment(String type) {
     case "wall":
       return "Запись на стены";
       break;
+    case "gift":
+      return "Подарок";
+      break;
     case "audio":
       return "Аудиозапись";
+      break;
+    case "ers":
+      return "Метод не прописан";
       break;
     default:
       return type;
   }
 }
 
-bool isMeFun (int id) {
-
+bool isMeFun(int id) {
   if (id.toString() == USER_ID) {
     return true;
   } else {
     return false;
   }
-
 }
