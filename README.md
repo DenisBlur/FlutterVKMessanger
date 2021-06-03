@@ -1,16 +1,12 @@
 # flutter_vk_app
 
-A new VK Messanger
+
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+Перед запуском, вам стоит заметить ***APP_ID*** в файле ***lib/supports/variables.dart***
+Затем после успешной авторизации в логах с помощью поиска вы сможете найти строчку с токеном: ***TOKEN: 12345***. Скопируйте его и замените переменную ***TOKEN*** в файле ***lib/supports/variables.dart***
 
-A few resources to get you started if this is your first Flutter project:
+После чего просто перезапустите приложение и все будет работать!
 
-- [Lab: Write your first Flutter app](https://flutter.dev/docs/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://flutter.dev/docs/cookbook)
-
-For help getting started with Flutter, view our
-[online documentation](https://flutter.dev/docs), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Если вы будите использовать мое приложение как основу, пожалуйста оставляйте ссылку на GitHub оригинального проекта :)
