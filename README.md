@@ -1,6 +1,4 @@
-# flutter_vk_app
-
-
+# FlutterVKMessanger
 
 ## Getting Started
 
