@@ -73,7 +73,7 @@ class _OAuthPageState extends State<OAuthPage>
                       print(url);
                       if (url.contains("access_token")) {
                         List<String> ResponseMain = url.split(RegExp("[=, &]"));
-                        print(ResponseMain[1]);
+                        print("TOKEN: " + ResponseMain[1]);
                         flutterWebView.dismiss();
                       } else {
                         print("NO");

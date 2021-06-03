@@ -88,12 +88,16 @@ conConverstation _$conConverstationFromJson(Map<String, dynamic> json) {
         ? null
         : conPeer.fromJson(json['peer'] as Map<String, dynamic>),
     json['last_message_id'] as int,
+    json['in_read'] as int,
+    json['out_read'] as int,
   );
 }
 
 Map<String, dynamic> _$conConverstationToJson(conConverstation instance) =>
     <String, dynamic>{
       'peer': instance.peer,
+      'in_read': instance.in_read,
+      'out_read': instance.out_read,
       'last_message_id': instance.last_message_id,
     };
 

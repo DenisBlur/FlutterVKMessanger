@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flare_flutter/flare_actor.dart';
 import 'package:flutter/cupertino.dart';
@@ -18,6 +19,7 @@ class ConversationsPage extends StatefulWidget {
 
 Converstation conversations;
 LongPollWrapper _longPollWrapper;
+int timer = 0;
 
 class _ConversationsPageState extends State<ConversationsPage> {
   Future<void> GetMainDataLongPoll() async {
@@ -32,32 +34,37 @@ class _ConversationsPageState extends State<ConversationsPage> {
     }
   }
 
-  Stream<LongPollAnswer> GetLongPoll() async* {
+  Stream<LongPollAnswer> getLongPoll() async* {
+    var url;
     while (true) {
       if (_longPollWrapper == null) {
         await GetMainDataLongPoll();
       } else {
-        var url_main = API_URL +
-            "messages.getLongPollServer?access_token=" +
-            TOKEN +
-            VERSION_API;
-        var response_main = await http.get(url_main);
-        if (response_main.statusCode == 200) {
-          Map<String, dynamic> map_main =
-              jsonDecode(response_main.body.toString());
-          _longPollWrapper = LongPollWrapper.fromJson(map_main);
+        if (timer == 0) {
+          var url_main = API_URL +
+              "messages.getLongPollServer?access_token=" +
+              TOKEN +
+              VERSION_API;
+          var response_main = await http.get(url_main);
+          if (response_main.statusCode == 200) {
+            Map<String, dynamic> map_main =
+            jsonDecode(response_main.body.toString());
+            _longPollWrapper = LongPollWrapper.fromJson(map_main);
+          }
+          String server = _longPollWrapper.response.server,
+              key = _longPollWrapper.response.key,
+              ts = _longPollWrapper.response.ts.toString();
+          url = "http://" +
+              server +
+              "?act=a_check&key=" +
+              key +
+              "&wait=25&mode=2&ts=" +
+              ts +
+              "&version=3";
+          timer = 5;
+        } else {
+          timer--;
         }
-        String server = _longPollWrapper.response.server,
-            key = _longPollWrapper.response.key,
-            ts = _longPollWrapper.response.ts.toString();
-
-        var url = "http://" +
-            server +
-            "?act=a_check&key=" +
-            key +
-            "&wait=25&mode=2&ts=" +
-            ts +
-            "&version=3";
         var response = await http.get(url);
         Map<String, dynamic> map = jsonDecode(response.body.toString());
         LongPollAnswer answer = LongPollAnswer.fromJson(map);
@@ -90,7 +97,7 @@ class _ConversationsPageState extends State<ConversationsPage> {
                 BottomNavigationBarItem(
                     icon: Icon(Icons.home_rounded), label: "Home"),
                 BottomNavigationBarItem(
-                    icon: Icon(Icons.chat_bubble_rounded), label: "Messanger"),
+                    icon: Icon(Icons.chat_bubble_rounded), label: "Messenger"),
                 BottomNavigationBarItem(
                     icon: Icon(Icons.account_circle), label: "Profile")
               ],
@@ -107,7 +114,7 @@ class _ConversationsPageState extends State<ConversationsPage> {
                   case ConnectionState.done:
                     return StreamBuilder(
                       initialData: false,
-                      stream: GetLongPoll(),
+                      stream: getLongPoll(),
                       key: UniqueKey(),
                       builder:
                           // ignore: missing_return
@@ -123,7 +130,6 @@ class _ConversationsPageState extends State<ConversationsPage> {
                               for (var update in answer.updates) {
                                 switch (update[0]) {
                                   case 4:
-                                    print(update.toString());
                                     for (var i = 0;
                                         i < conversations.response.items.length;
                                         i++) {
@@ -134,6 +140,7 @@ class _ConversationsPageState extends State<ConversationsPage> {
                                       if (item.conversation.peer.id
                                               .toString() ==
                                           update[3].toString()) {
+                                        item.conversation.in_read = update[1];
                                         if (update[2] == 51) {
                                           item.isMe = true;
                                         } else {
@@ -155,12 +162,47 @@ class _ConversationsPageState extends State<ConversationsPage> {
                                       }
                                     }
                                     break;
+                                  case 6:
+                                    print("UPDATEEEEEEE 6:" + update.toString());
+                                    for (var i = 0;
+                                    i < conversations.response.items.length;
+                                    i++) {
+                                      var item =
+                                      conversations.response.items[i];
+                                      if (item.conversation.peer.id
+                                          .toString() ==
+                                          update[1].toString()) {
+                                        item.conversation.out_read = update[2];
+                                        conversations.response.items[i] = item;
+                                        break;
+                                      }
+                                    }
+                                    break;
+                                  case 7:
+                                    print("UPDATEEEEEEE 7:" + update.toString());
+                                    for (var i = 0;
+                                        i < conversations.response.items.length;
+                                        i++) {
+                                      var item =
+                                          conversations.response.items[i];
+                                      if (item.conversation.peer.id
+                                              .toString() ==
+                                          update[1].toString()) {
+                                        item.conversation.out_read = update[2];
+                                        conversations.response.items[i] = item;
+                                        break;
+                                      }
+                                    }
+                                    break;
                                   case 8:
                                   case 9:
                                     int online_date = update[0] == 8 ? 1 : 0;
                                     int id_date = update[1] * -1;
                                     for (var i = 0;
-                                        i < conversations.response.items.length;
+                                        i <
+                                            conversations
+                                                    .response.items.length -
+                                                1;
                                         i++) {
                                       var item =
                                           conversations.response.profiles[i];

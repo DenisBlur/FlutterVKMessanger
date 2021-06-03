@@ -35,3 +35,19 @@ bool isMeFun(int id) {
     return false;
   }
 }
+
+// String getInitials(String fullName) => fullName.isNotEmpty
+//     ? fullName.trim().split(" ").map((s) => s[0]).take(2).join()
+//     : '';
+
+String getInitials(List<String> stringData, String separator) {
+  String fullString = "";
+  for(var s in stringData) {
+    fullString = fullString + s + separator;
+  }
+  if (fullString.isNotEmpty) {
+    return fullString.trim().split(separator).map((e) => e[0]).take(stringData.length).join();
+  } else {
+    return "";
+  }
+}

@@ -1,5 +1,6 @@
-import 'package:flare_flutter/flare_actor.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_vk_app/GlobalWidget/FadeCircleAvatar.dart';
+import 'package:flutter_vk_app/GlobalWidget/GradientCircleAvatar.dart';
 import 'dart:async';
 import 'package:flutter_vk_app/Models/ConverstationModel.dart';
 import 'package:flutter_vk_app/pages/ConversationsPage.dart';
@@ -10,6 +11,7 @@ import 'package:flutter_vk_app/supports/global_method.dart';
 class ConversationItem extends StatefulWidget {
   final conItem cItem;
   final int index;
+
   const ConversationItem({Key key, @required this.cItem, @required this.index})
       : super(key: key);
 
@@ -22,6 +24,7 @@ class _ConversationItemState extends State<ConversationItem> {
   int _start = 5;
   bool isMe = null;
   bool isWrite = null;
+  bool isRead = null;
   int id;
   int online = 0;
   String text, first_name = "", last_name = "", avatar = "";
@@ -50,6 +53,10 @@ class _ConversationItemState extends State<ConversationItem> {
     id = widget.cItem.conversation.peer.id;
     isWrite = widget.cItem.isWrite == null ? false : widget.cItem.isWrite;
     text = widget.cItem.last_message.text;
+    isRead =
+        widget.cItem.conversation.in_read == widget.cItem.conversation.out_read
+            ? true
+            : false;
 
     for (var item in conversations.response.profiles) {
       if (item.id == id) {
@@ -57,7 +64,8 @@ class _ConversationItemState extends State<ConversationItem> {
         last_name = item.last_name;
         online = item.online;
         avatar = item.photo_100;
-        if (avatar.contains("https://vk.com/images/camera_100.png?ava=1")) {
+        print("AVATAR:" + avatar);
+        if (avatar.contains("https://vk.com/images/camera_100.png")) {
           avatar = "no_ava";
         }
         break;
@@ -93,24 +101,18 @@ class _ConversationItemState extends State<ConversationItem> {
             Stack(
               children: [
                 avatar == "no_ava"
-                    ? Container(
-                        width: 56,
-                        height: 56,
-                        decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(50),
-                            border:
-                                Border.all(color: designLightGray, width: 1)),
-                        child: Center(
-                          child: Text(
-                            getInitials(first_name + " " + last_name),
-                            style: TextStyle(
-                                fontWeight: FontWeight.w500, fontSize: 24),
-                          ),
-                        ))
-                    : CircleAvatar(
-                        backgroundImage: NetworkImage(avatar == ""
+                    ? GradientCircleAvatar(
+                  radius: 28,
+                  separator: " ",
+                  stringData: [
+                    first_name,
+                    last_name
+                  ],
+                )
+                    : FadeCircleAvatar(
+                        imageUrl: avatar == ""
                             ? "https://vk.com/images/camera_200.png?ava=1"
-                            : avatar),
+                            : avatar,
                         radius: 28,
                       ),
                 Positioned(
@@ -179,46 +181,71 @@ class _ConversationItemState extends State<ConversationItem> {
                   SizedBox(
                     height: 8,
                   ),
-                  RichText(
-                      text: TextSpan(children: <TextSpan>[
-                    isMe
-                        ? TextSpan(
-                            text: !isWrite ? "Вы: " : "",
-                            style: TextStyle(
-                                color: designBlack,
-                                fontWeight: FontWeight.w500,
-                                fontSize: 10))
-                        : TextSpan(
-                            text: "",
-                            style: TextStyle(
-                                color: Colors.amber,
-                                fontWeight: FontWeight.w500,
-                                fontSize: 10)),
-                    isWrite
-                        ? TextSpan(
-                            text: "Печатает...",
-                            style: TextStyle(
-                                color: Colors.amber,
-                                fontWeight: FontWeight.w500,
-                                fontSize: 10))
-                        : TextSpan(
-                            text: text != ""
-                                ? text
-                                : nameAttachment(widget.cItem.last_message
-                                        .attachments.isNotEmpty
-                                    ? widget
-                                        .cItem.last_message.attachments[0].type
-                                    : "ers"),
-                            style: TextStyle(
-                                color: (widget.cItem.last_message.attachments
-                                                .length !=
-                                            0) &&
-                                        (text == "")
-                                    ? Colors.amber
-                                    : designGray,
-                                fontWeight: FontWeight.w500,
-                                fontSize: 10))
-                  ]))
+                  Row(
+                    children: [
+                      Expanded(
+                        child: RichText(
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                            text: TextSpan(children: <TextSpan>[
+                              isMe
+                                  ? TextSpan(
+                                      text: !isWrite ? "Вы: " : "",
+                                      style: TextStyle(
+                                          color: designBlack,
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 10))
+                                  : TextSpan(
+                                      text: "",
+                                      style: TextStyle(
+                                          color: Colors.amber,
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 10)),
+                              isWrite
+                                  ? TextSpan(
+                                      text: "Печатает...",
+                                      style: TextStyle(
+                                          color: Colors.amber,
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 10))
+                                  : TextSpan(
+                                      text: text != ""
+                                          ? text
+                                          : nameAttachment(widget
+                                                  .cItem
+                                                  .last_message
+                                                  .attachments
+                                                  .isNotEmpty
+                                              ? widget.cItem.last_message
+                                                  .attachments[0].type
+                                              : "ers"),
+                                      style: TextStyle(
+                                          color: (widget.cItem.last_message
+                                                          .attachments.length !=
+                                                      0) &&
+                                                  (text == "")
+                                              ? Colors.amber
+                                              : designGray,
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 10))
+                            ])),
+                      ),
+                      Container(
+                        height: 14,
+                        width: 14,
+                        child: Center(
+                            child: AnimatedContainer(
+                          width: isRead ? 0 : 10,
+                          height: isRead ? 0 : 10,
+                          decoration: BoxDecoration(
+                              color: Colors.amberAccent
+                                  .withOpacity(isRead ? 0 : 1),
+                              borderRadius: BorderRadius.circular(16)),
+                          duration: Duration(milliseconds: 250),
+                        )),
+                      )
+                    ],
+                  )
                 ],
               ),
             ),
@@ -228,7 +255,3 @@ class _ConversationItemState extends State<ConversationItem> {
     );
   }
 }
-
-String getInitials(String fullName) => fullName.isNotEmpty
-    ? fullName.trim().split(" ").map((s) => s[0]).take(2).join()
-    : '';

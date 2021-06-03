@@ -57,9 +57,12 @@ class conItem {
 @JsonSerializable()
 class conConverstation {
   conPeer peer;
+  int in_read;
+  int out_read;
   int last_message_id;
 
-  conConverstation(this.peer, this.last_message_id);
+  conConverstation(
+      this.peer, this.last_message_id, this.in_read, this.out_read);
 
   factory conConverstation.fromJson(Map<String, dynamic> json) =>
       _$conConverstationFromJson(json);
