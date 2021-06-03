@@ -1,4 +1,5 @@
 # FlutterVKMessanger
+Клиент VK написанный на Flutter.
 
 ## Getting Started
 
